@@ -134,7 +134,7 @@ int main(void)
   while (1)
   {
 	  // transmitter
-	  HAL_Delay(1000);
+	  HAL_Delay(200);
 	  buffer[0] = (buffer[0] == 0) ? 1 : 0;
 	  if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) > 0)
 	  {
@@ -208,9 +208,9 @@ static void MX_CAN_Init(void)
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = 16;
   hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan.Init.SyncJumpWidth = CAN_SJW_4TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_4TQ;
+  hcan.Init.TimeSeg2 = CAN_BS2_4TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
   hcan.Init.AutoWakeUp = DISABLE;
