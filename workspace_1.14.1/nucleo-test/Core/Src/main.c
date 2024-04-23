@@ -81,6 +81,7 @@ void blink(uint16_t count, uint8_t fast)
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
