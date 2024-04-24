@@ -114,7 +114,6 @@ int main(void)
   char *data = "SOS\r\n\0";
   while (1)
   {
-	  HAL_Delay(1000);
 	  // SOS
 	  HAL_UART_Transmit(&huart2, (uint8_t *)data, strlen(data), HAL_MAX_DELAY);
   	  blink(3, 1);
