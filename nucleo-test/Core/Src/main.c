@@ -44,6 +44,7 @@
 DAC_HandleTypeDef hdac1;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim6;
 
 UART_HandleTypeDef huart2;
 
@@ -57,6 +58,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_DAC1_Init(void);
+static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -78,6 +80,13 @@ void blink(uint16_t count, uint8_t fast)
 		HAL_Delay(dms);
 	}
 }
+
+// 4-8ma
+const uint32_t MAX = 4095;
+const uint32_t MIN = 100;
+
+uint32_t wet_well_level = MIN;
+int32_t wet_well_increment = 1;
 
 /* USER CODE END 0 */
 
@@ -113,6 +122,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM1_Init();
   MX_DAC1_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   // duty cycle = CCR / ARR
   // CCR = duty cycle * ARR
@@ -120,6 +130,8 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
   HAL_DAC_Start(&hdac1, DAC1_CHANNEL_1);
+
+  HAL_TIM_Base_Start_IT(&htim6);
 
   /* USER CODE END 2 */
 
@@ -150,19 +162,10 @@ int main(void)
 	  //TIM1->CCR4 = TIM1->ARR;
 	  //HAL_Delay(1000);
 
-	  // with 330ohm resistor, 4 - 8ma.
-	  const uint32_t MA8 = 3500;
-	  const uint32_t MA4 = 1650;
-	  uint32_t i = MA4;
-	  while (1)
-	  {
-		  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i++);
-		  HAL_Delay(100);
-		  if (i >= MA8)
-		  {
-			  i = MA4;
-		  }
-	  }
+	  wet_well_increment = HAL_GPIO_ReadPin(PUMP1_RUNNING_GPIO_Port, PUMP1_RUNNING_Pin) == GPIO_PIN_SET ? -40 : 10                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ;
+
+	  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, wet_well_level);
+	  HAL_Delay(10);
 
     /* USER CODE END WHILE */
 
@@ -343,6 +346,44 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 8000;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 10000;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -396,6 +437,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : PUMP1_RUNNING_Pin */
+  GPIO_InitStruct.Pin = PUMP1_RUNNING_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(PUMP1_RUNNING_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LD3_Pin */
   GPIO_InitStruct.Pin = LD3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -408,6 +455,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim == &htim6)
+	{
+		int test_value = wet_well_level + wet_well_increment;
+
+		if (test_value < MIN || test_value > MAX)
+			return;
+
+		wet_well_level += wet_well_increment;
+	}
+}
 
 /* USER CODE END 4 */
 
