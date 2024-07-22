@@ -41,6 +41,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+DAC_HandleTypeDef hdac1;
+
 TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart2;
@@ -54,6 +56,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_DAC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -109,20 +112,24 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM1_Init();
+  MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
   // duty cycle = CCR / ARR
   // CCR = duty cycle * ARR
   TIM1->CCR4 = 0 * TIM1->ARR;
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
+  HAL_DAC_Start(&hdac1, DAC1_CHANNEL_1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  char *data = "SOS\r\n\0";
+  //char *data = "SOS\r\n\0";
   while (1)
   {
 	  // SOS
+	  /*
 	  HAL_UART_Transmit(&huart2, (uint8_t *)data, strlen(data), HAL_MAX_DELAY);
   	  blink(3, 1);
   	  for (int i = 0; i <= TIM1->ARR; i+=70)
@@ -138,6 +145,24 @@ int main(void)
   	  }
   	  blink(3, 1);
   	  HAL_Delay(1000);
+  	  */
+
+	  //TIM1->CCR4 = TIM1->ARR;
+	  //HAL_Delay(1000);
+
+	  // with 330ohm resistor, 4 - 8ma.
+	  const uint32_t MA8 = 3500;
+	  const uint32_t MA4 = 1650;
+	  uint32_t i = MA4;
+	  while (1)
+	  {
+		  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i++);
+		  HAL_Delay(100);
+		  if (i >= MA8)
+		  {
+			  i = MA4;
+		  }
+	  }
 
     /* USER CODE END WHILE */
 
@@ -193,6 +218,49 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief DAC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DAC1_Init(void)
+{
+
+  /* USER CODE BEGIN DAC1_Init 0 */
+
+  /* USER CODE END DAC1_Init 0 */
+
+  DAC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN DAC1_Init 1 */
+
+  /* USER CODE END DAC1_Init 1 */
+
+  /** DAC Initialization
+  */
+  hdac1.Instance = DAC1;
+  if (HAL_DAC_Init(&hdac1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** DAC channel OUT1 config
+  */
+  sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
+  sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DAC1_Init 2 */
+
+  /* USER CODE END DAC1_Init 2 */
+
 }
 
 /**
